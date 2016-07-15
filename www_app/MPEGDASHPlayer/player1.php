@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>MPEG-DASH Player - Live Video Streaming | Wowza Media Systems</title>
+
+    <script language="javascript">AC_FL_RunContent = 0;</script>
+
+    <link rel="stylesheet" href="css/screen.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="css/wowza.css" type="text/css" />
+
+    <!-- Libraries -->
+
+    <!-- DASH-AVC/265 reference implementation -->
+    <script src="js/shaka-player.js"></script>
+
+    <!-- Framework CSS -->
+    <link rel="stylesheet" href="css/screen.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="css/wowza.css" type="text/css" />
+
+    <script>
+        function supports_media_source()
+        {
+            "use strict";
+            var hasWebKit = (window.WebKitMediaSource !== null && window.WebKitMediaSource !== undefined),
+                hasMediaSource = (window.MediaSource !== null && window.MediaSource !== undefined);
+            return (hasWebKit || hasMediaSource);
+        }
+    </script>
+
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="span-18">
+            <h1>Live Video Streaming</h1>
+            <h2>MPEG-DASH Player</h2>
+        </div>
+        <div class="span-6 last">
+            <a href="http://www.wowza.com"><img src="img/wowza-logo_1024.png" class="logo" style="height:72px;width:205px" /></a>
+        </div>
+        <hr class="heading">
+        <!-- END HEADER -->
+        <!-- EXAMPLE PLAYER: WIDTH of this player should be 630px, height will vary depending on the example-->
+        
+            <div id="supported" style="display:none">
+                <div>
+                    <style>
+                        video {
+                            background-color: #000000;
+                        }
+                    </style>
+                   <video  id="videoObj" x-webkit-airplay="allow" controls alt="Example File" width="300" height="200" autoplay muted></video> 
+                     <video id="videoObj1" x-webkit-airplay="allow" controls alt="Example File" width="300" height="200" autoplay></video>
+                      <video id="videoObj" x-webkit-airplay="allow" controls alt="Example File" width="300" height="200" autoplay></video>
+                       <video id="videoObj" x-webkit-airplay="allow" controls alt="Example File" width="300" height="200" autoplay></video>
+                </div>
+                <table>
+			<!--
+                    <tr>
+                        <td>
+                            <button id="playObj" type="button" style="width:50px" onclick="JavaScript:playControl()" disabled="disabled">Pause</button>
+                        </td>
+                    </tr>
+			-->
+                    <tr>
+                        <td align="right">
+                            <b>Stream:</b>
+                        </td>
+                        <td>
+                            <input id="connectStr" size = "56" type="text" placeholder="" value="http://localhost:1935/live/myStream/manifest.mpd"/>
+                            <input id="connectStr1" size = "56" type="text" placeholder="" value="http://localhost:1935/live/myStream1/manifest.mpd"/>
+                            <button id="connectObj" type="button" style="width:80px" onclick="JavaScript:connect()">Start</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right">
+                            <b>Status:</b>
+                        </td>
+                        <td>
+                            <label id="statusStr" size = "100" type="text" placeholder="" value="">Disconnected</label>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+			<div id="debug_log" style="height: 425px; width: 630px; overflow: auto; clear: both;">
+			</div>
+        <script>
+            if ( supports_media_source() ) {
+                supported.style.display="";
+                videoObj.style.display="";
+            }
+            else {
+                notsupported.style.display="";
+            }
+		var video,video1;
+		var player,player1;
+		var source,source1; 
+		var estimator,estimator1;
+
+            function connect()
+            {
+                if(connectObj.textContent == "Stop") 
+			{
+			dashStop();
+			connectObj.textContent = "Start";
+			statusStr.textContent = "Disconnected";
+                	}
+                else {
+
+                        connectObj.textContent = "Stop";
+                        statusStr.textContent = "Playing";
+                        if ( video == null )
+                        {// video = document.querySelector(".test");
+                        video = document.getElementById("videoObj");
+                         }
+                         if ( video1 == null )
+                        {// video = document.querySelector(".test");
+                        video1 = document.getElementById("videoObj1");
+                         }
+
+                        if ( player == null )
+                        { player = new shaka.player.Player(video);   
+                        }
+                        if ( player1 == null )
+                        { player1 = new shaka.player.Player(video1);   
+                        }
+
+                        // Attach the player to the window so that it can be easily debugged.
+                        window.player = player;
+
+                        // Listen for errors from the Player.
+                        player.addEventListener('error', failed );
+                       player1.addEventListener('error', failed );
+                        // Construct a DashVideoSource to represent the DASH manifest.
+                        //var mpdUrl = 'http://turtle-tube.appspot.com/t/t2/dash.mpd';
+                        if ( estimator != null )
+			             { estimator=null; }
+                     if ( estimator1 != null )
+                         { estimator1=null; }
+
+                        estimator = new shaka.util.EWMABandwidthEstimator();
+                         estimator1 = new shaka.util.EWMABandwidthEstimator();
+
+                        if ( source != null )
+                        { source = null; }
+                    if ( source1 != null )
+                        { source1 = null; }
+
+                        source = new shaka.player.DashVideoSource(connectStr.value, null, estimator);
+                         source1 = new shaka.player.DashVideoSource(connectStr1.value, null, estimator1);
+                        // Load the source into the Player.
+                        player.load(source);
+                         player1.load(source1);
+                	}
+            }
+
+	function failed(e)
+	{
+	var done = false;
+	if ( e.detail == 'Error: Network failure.' )
+		{
+		statusStr.textContent = 'Network Connection Failed.';
+		done = true;
+		}
+        if ( e.detail.status!=200 && done == false )
+                {
+		switch ( e.detail.status )
+			{
+			case 404:
+			statusStr.textContent = e.detail.url+' not found.';
+			break;
+			default:
+	                statusStr.textContent = 'Error '+e.detail.status+' for '+e.detail.url;
+			break;
+                	}
+		}
+        }
+
+	function dashStop()
+	{
+		if(player!=null)
+		{
+		player.unload();
+		}
+	connectObj.textContent = "Start";
+	statusStr.textContent = "Disconnected";
+	}
+
+            </script>
+        </div>
+        <!-- SIDEBAR -->
+        
+        
+        <!-- END FOOTER -->
+    
+</body>
+</html>
